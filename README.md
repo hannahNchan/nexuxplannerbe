@@ -1,27 +1,38 @@
 # NexusPlanner Backend
 
-Backend reproducible para NexusPlanner usando Supabase local/self-hosted. Este repo contiene schema, RLS, RPC commands, Edge Functions, storage policies, seeds default y el CLI opcional para agentes.
+Reproducible NexusPlanner backend powered by the Supabase local stack. This repository contains the database schema, RLS policies, RPC command layer, Edge Functions, storage bucket policies, default seed catalogs, and the optional NexusPlanner CLI for agents.
 
-No contiene datos personales, organizaciones, proyectos, tareas, usuarios ni dumps de produccion.
+This repo is intentionally shareable: it does not include production data, real users, organizations, projects, tasks, storage objects, or production secrets.
 
-## Requisitos
+## Requirements
 
-- Docker Desktop, Docker Engine o un host Linux con Docker.
-- Node.js 18+ si quieres usar los scripts npm o el CLI.
-- Supabase CLI. Puedes usar `npx supabase ...` sin instalarlo globalmente.
+- Linux host with Docker Engine and Docker Compose support.
+- Node.js 18+.
+- npm.
+- Supabase CLI through `npx supabase ...`; no global install is required.
 
-## Instalacion rapida
+Docker must be running before starting Supabase.
+
+## Install
 
 ```bash
+git clone <repo-url> nexusplannerbe
+cd nexusplannerbe
 npm install
+cp .env.example .env
+```
+
+Start Supabase and apply the local schema:
+
+```bash
 npm run start
 npm run reset
 npm run status
 ```
 
-`npm run start` levanta el stack local de Supabase con Docker. `npm run reset` aplica migraciones y despues ejecuta `supabase/seed.sql`.
+`npm run start` starts the local Supabase Docker stack. `npm run reset` applies every migration and then runs `supabase/seed.sql`.
 
-Si no quieres usar npm:
+If you prefer not to use npm scripts:
 
 ```bash
 npx supabase start
@@ -29,27 +40,81 @@ npx supabase db reset
 npx supabase status
 ```
 
-## Conectar el frontend
+## Environment
 
-Despues de `supabase status`, copia la API URL y la publishable/anon key al `.env.local` del frontend:
+After `npm run status`, copy the local API URL and keys into `.env`:
+
+```env
+SUPABASE_URL=http://127.0.0.1:54321
+SUPABASE_ANON_KEY=<publishable-or-anon-key-from-supabase-status>
+SUPABASE_SERVICE_ROLE_KEY=<secret-or-service-role-key-from-supabase-status>
+
+NEXUS_API_URL=http://127.0.0.1:54321
+NEXUS_PUBLISHABLE_KEY=<publishable-or-anon-key-from-supabase-status>
+NEXUS_ACCESS_TOKEN=
+NEXUS_ORGANIZATION_ID=
+NEXUS_PROJECT_ID=
+
+JOB_WORKER_SECRET=change-me-local-only
+```
+
+Do not use Markdown links inside `.env` values. Environment values must be plain strings.
+
+## Serve Edge Functions
+
+Run this in a separate terminal after Supabase is already running:
+
+```bash
+npm run functions:serve
+```
+
+Local Edge Functions are served through:
+
+```text
+http://127.0.0.1:54321/functions/v1
+```
+
+The `job-worker` function requires `JOB_WORKER_SECRET` and callers must send the matching `x-job-worker-secret` header.
+
+## Connect The Frontend
+
+In the frontend repository, set `.env.local` with the values from `npm run status`:
 
 ```env
 VITE_SUPABASE_URL=http://127.0.0.1:54321
-VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY=<anon-or-publishable-key-from-status>
+VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY=<publishable-or-anon-key-from-supabase-status>
 VITE_AUTH_REDIRECT_URL=http://localhost:5173
 ```
 
-Luego en el repo frontend:
+Then start the frontend:
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Que se crea
+Open the app at:
 
-- Schema publico completo de NexusPlanner desde `supabase/migrations/00000000000000_baseline_schema.sql`.
-- Migraciones posteriores para comandos de organizacion, CLI/agente y colores de badges.
+```text
+http://localhost:5173
+```
+
+Supabase Studio is available at:
+
+```text
+http://127.0.0.1:54323
+```
+
+For a fresh local setup, create test users from Supabase Studio under `Authentication -> Users`.
+
+## What This Creates
+
+- Public NexusPlanner schema from `supabase/migrations/00000000000000_baseline_schema.sql`.
+- Follow-up migrations for organization deletion commands, CLI/agent commands, and status badge colors.
+- Storage buckets:
+  - `project-assets`
+  - `avatars`
+  - `task-images`
 - Edge Functions:
   - `agent-commands`
   - `epic-commands`
@@ -58,59 +123,106 @@ npm run dev
   - `sprint-commands`
   - `task-commands`
   - `workspace-commands`
-- Buckets vacios:
-  - `project-assets`
-  - `avatars`
-  - `task-images`
-- Catalogos default:
-  - tipos de issue
-  - prioridades
-  - fases de epica
-  - sistema Fibonacci de story points
+- Default catalogs:
+  - issue types
+  - priorities
+  - epic phases
+  - Fibonacci story point system
+  - Fibonacci story point values
 
-## Que NO se crea
+## What This Does Not Create
 
-- Usuarios de Auth.
-- Organizaciones reales.
-- Proyectos reales.
-- Epicas, tareas, sprints o reportes reales.
-- Objetos de storage.
-- Secrets productivos.
+- Auth users.
+- Real organizations.
+- Real projects.
+- Epics, tasks, sprints, reports, or activity data.
+- Storage objects.
+- Production secrets.
 
-## Edge Functions locales
+## CLI
 
-Para servir functions localmente:
-
-```bash
-cp .env.example .env
-npm run functions:serve
-```
-
-Para invocar `job-worker` necesitas definir `JOB_WORKER_SECRET` y enviar el header `x-job-worker-secret`.
-
-## CLI opcional
-
-El CLI vive en `packages/cli` y puede usarse contra este backend local:
+The optional CLI lives in `packages/cli`:
 
 ```bash
 npm run cli -- help
 npm run cli -- auth status
 ```
 
-Para operaciones autenticadas, inicia sesion desde el frontend o usa un token valido:
+Configure it against the local backend:
 
 ```bash
 npm run cli -- config set url http://127.0.0.1:54321
-npm run cli -- config set anon-key <anon-or-publishable-key>
+npm run cli -- config set anon-key <publishable-or-anon-key>
 npm run cli -- config set token <user-access-token>
 ```
 
-El CLI tambien lee `~/.nexusplanner/config.json`. Si vienes de otro ambiente, revisa `npm run cli -- config get` antes de mutar datos para confirmar que `org` y `project` apuntan al backend correcto.
+The CLI also reads `~/.nexusplanner/config.json`. Before mutating data, check the active configuration:
 
-La documentacion del CLI esta en `docs/cli/README.md` y el contrato de planes de agentes en `docs/cli/AGENT_PLANS.md`.
+```bash
+npm run cli -- config get
+```
 
-## Por que no hay docker-compose.yml propio todavia
+CLI documentation:
 
-Supabase CLI ya genera y controla el compose interno para Postgres, Auth, REST, Realtime, Storage, Studio y Edge Runtime. Mantener un compose manual ahora duplicaria trabajo y seria mas facil de romper con cambios de Supabase.
+- `docs/cli/README.md`
+- `docs/cli/AGENT_PLANS.md`
 
-Cuando el backend este estable en Raspberry o servidor propio, el siguiente paso sera crear una variante self-hosted con `docker-compose.yml`, healthchecks, backups y secrets de produccion.
+## Stop Services
+
+Stop the Supabase local stack:
+
+```bash
+npm run stop
+```
+
+Or directly:
+
+```bash
+npx supabase stop
+```
+
+To stop and remove the local database data instead of keeping a backup:
+
+```bash
+npx supabase stop --no-backup
+```
+
+## Uninstall Local Dependencies
+
+Use this when you want to keep the repository but remove installed dependencies and local Supabase runtime state:
+
+```bash
+npm run stop
+rm -rf node_modules
+rm -f package-lock.json
+rm -rf supabase/.temp
+```
+
+This keeps the source files, migrations, functions, seed data, docs, and `.env` files.
+
+To install again later:
+
+```bash
+npm install
+npm run start
+npm run reset
+npm run functions:serve
+```
+
+## Full Local Cleanup
+
+If you want a stronger cleanup of Docker resources created by the Supabase local stack:
+
+```bash
+npx supabase stop --no-backup
+docker ps -a
+docker volume ls
+```
+
+Only remove Docker volumes manually if you are sure they belong to this local test environment.
+
+## Why There Is No Custom docker-compose.yml Yet
+
+The Supabase CLI already manages the local Docker Compose stack for Postgres, Auth, REST, Realtime, Storage, Studio, and Edge Runtime. Keeping a custom Compose file now would duplicate Supabase CLI behavior and make upgrades easier to break.
+
+When this backend is promoted to a permanent Raspberry Pi or server deployment, the next step is to add a production-oriented self-hosted profile with a dedicated `docker-compose.yml`, healthchecks, backup strategy, reverse proxy, TLS, and real secret management.

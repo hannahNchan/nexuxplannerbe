@@ -1,0 +1,15 @@
+{
+  "name": "@nexusplanner/cli",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "nexus": "./src/index.mjs"
+  },
+  "scripts": {
+    "dev": "node src/index.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

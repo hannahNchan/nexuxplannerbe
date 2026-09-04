@@ -1,0 +1,21 @@
+{
+  "name": "nexusplannerbe",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "start": "supabase start",
+    "stop": "supabase stop",
+    "status": "supabase status",
+    "reset": "supabase db reset",
+    "functions:serve": "supabase functions serve --env-file .env",
+    "cli": "node packages/cli/src/index.mjs"
+  },
+  "workspaces": [
+    "packages/cli"
+  ],
+  "devDependencies": {
+    "supabase": "^2.116.0"
+  }
+}
+

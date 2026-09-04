@@ -1,0 +1,56 @@
+{
+  "organization": {
+    "name": "Lufthansa"
+  },
+  "projects": [
+    {
+      "ref": "aero",
+      "title": "Aero Operations Console",
+      "project_key": "AERO",
+      "description": "Workspace de pruebas creado por agente.",
+      "visibility": "organization",
+      "sprints": [
+        {
+          "ref": "sprint-1",
+          "name": "Sprint 1",
+          "goal": "Validar la primera experiencia de planeacion.",
+          "duration": "7d",
+          "status": "future",
+          "start_date": "2026-09-01T09:00:00.000Z"
+        }
+      ],
+      "epics": [
+        {
+          "ref": "ops",
+          "name": "Operaciones",
+          "color": "#3B82F6",
+          "estimated_effort": "L",
+          "start_date": "2026-09-01",
+          "end_date": "2026-09-30"
+        }
+      ],
+      "tasks": [
+        {
+          "ref": "calendar-view",
+          "title": "Disenar vista calendario",
+          "subtitle": "Validar fechas y drag and drop",
+          "description": "Tarea de ejemplo generada desde agent apply-plan.",
+          "destination": "scrum",
+          "epic_ref": "ops",
+          "sprint_ref": "sprint-1",
+          "story_points": "5",
+          "planned_start_date": "2026-09-02",
+          "planned_end_date": "2026-09-05"
+        },
+        {
+          "ref": "backlog-docs",
+          "title": "Preparar backlog inicial",
+          "destination": "backlog",
+          "epic_ref": "ops",
+          "story_points": "3",
+          "planned_start_date": "2026-09-06"
+        }
+      ]
+    }
+  ]
+}

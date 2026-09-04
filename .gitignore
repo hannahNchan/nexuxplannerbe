@@ -1,0 +1,11 @@
+.DS_Store
+node_modules/
+dist/
+.env
+.env.local
+supabase/.branches/
+supabase/.temp/
+supabase/.cache/
+supabase/.env
+*.log
+

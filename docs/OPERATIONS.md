@@ -129,6 +129,8 @@ http://127.0.0.1:54321/functions/v1/<function-name>
 Funciones disponibles:
 
 - `workspace-commands`
+- `board-view`
+- `board-commands`
 - `task-commands`
 - `epic-commands`
 - `sprint-commands`
@@ -255,6 +257,21 @@ Los nombres exactos pueden variar. Lo importante es separar checkout, secretos, 
 10. Reiniciar/recargar Edge Functions segun el supervisor real.
 11. Ejecutar smoke tests.
 12. Observar logs antes de declarar el despliegue terminado.
+
+La Raspberry actual dispone de dos scripts para ejecutar esos pasos sin resetear
+la base personal:
+
+```bash
+cd /home/hannah/nexusplannerbe
+./scripts/backup-raspberry-release.sh
+./scripts/deploy-raspberry-release.sh
+```
+
+El primero crea un dump verificable de PostgreSQL, una copia de los objetos de
+Storage y una copia del runtime de funciones fuera de Git. El segundo sincroniza
+migraciones y funciones hacia el proyecto Supabase persistente, ejecuta solo
+migraciones pendientes con `migration up --local`, reinicia Edge Runtime y corre
+la auditoria de ubicacion de tareas. Nunca sustituirlo por `db reset` en ese host.
 
 Ejemplo de actualizacion de codigo:
 
@@ -383,8 +400,18 @@ Validar funcionalmente:
 7. Subida y borrado de una imagen de prueba.
 8. Una llamada CLI con el mismo usuario.
 9. Worker con cola vacia.
+10. Mover una tarea de prueba Backlog -> Kanban -> Sprint -> Backlog y confirmar que cada lectura devuelve una sola ubicación coherente.
 
 Nunca usar una organizacion personal para pruebas destructivas de despliegue.
+
+Auditoria administrativa de ubicaciones, solo con una conexion `service_role` controlada:
+
+```sql
+select *
+from public.audit_task_placement_consistency(null);
+```
+
+Un resultado vacio indica que no se detectaron tareas de backlog con columna/sprint, tareas de tablero sin columna ni referencias cruzadas entre proyectos. Pasar un UUID limita la auditoria a un proyecto. Esta funcion no corrige filas automaticamente.
 
 ## 16. Observabilidad
 

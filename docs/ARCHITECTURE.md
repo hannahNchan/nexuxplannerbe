@@ -180,10 +180,27 @@ La importación de `supabase-js` usa actualmente `@2` sin versión exacta, a dif
 
 | Action | RPC | Efecto principal |
 | --- | --- | --- |
-| `create_task` | `create_task_command` | Crea backlog/scrum, ID visible, evento y job |
+| `create_task` | `create_task_command` | Crea en backlog, Kanban o sprint, con ID visible, evento y job |
 | `assign_task` | `assign_task_command` | Valida miembro y cambia responsable |
-| `move_task_column` | `move_task_column_command` | Cambia estado/posición dentro del proyecto |
+| `move_task_column` | `move_task_column_command` | Cambia columna/posición conservando Kanban o sprint; no saca tareas del backlog |
 | `schedule_task` | `schedule_task_command` | Persiste fechas planeadas |
+
+### `board-view`
+
+Expone el read model del tablero para un usuario y proyecto. Recibe `projectId`, propaga el JWT y llama `get_project_board_view`. PostgreSQL decide la preferencia, el scope efectivo, el sprint activo, las capacidades, las columnas y las tareas visibles.
+
+El frontend debe renderizar este resultado sin reconstruir scopes ni volver a filtrar tareas por sprint.
+
+### `board-commands`
+
+Expone commands de tablero:
+
+- `set_scope` -> `set_project_board_scope_command`.
+- `move_task_to_backlog` -> `move_task_to_backlog_command`.
+- `move_task_to_kanban` -> `move_task_to_kanban_command`.
+- `move_task_to_sprint` -> `move_task_to_sprint_command`.
+
+El backend guarda el scope por usuario/proyecto y ejecuta las transiciones de ubicación de forma atomica. La funcion interna `move_task_destination_command` no es invocable por clientes autenticados; los wrappers publicos aplican el contrato de cada destino.
 
 ### `epic-commands`
 
@@ -237,9 +254,9 @@ Reclama y finaliza jobs. No es una función para navegador. No debe exponerse si
 
 ### Trabajo
 
-- Crear tarea con destino `backlog` o `scrum`.
+- Crear tarea con destino `backlog`, `kanban` o `sprint`; `scrum` es alias de compatibilidad.
 - Asignar solo a miembros del proyecto.
-- Mover a una columna del proyecto.
+- Mover entre backlog, Kanban y sprint normalizando columna, sprint y posicion.
 - Programar fechas con fin igual al inicio cuando se omite.
 - Crear épica con owner/fase válidos.
 - Crear sprint con duración `7d`, `15d` o `1m`.
@@ -284,9 +301,10 @@ Notificaciones se producen por funciones/triggers server-side para asignaciones,
 2. Determina tareas completas comparando el nombre normalizado de la columna con estados terminales conocidos.
 3. Exige una disposición para cada tarea incompleta.
 4. Genera `sprint_reports` antes de mover tareas.
-5. Mueve incompletas a backlog o a un sprint futuro.
+5. Mueve incompletas a backlog, Kanban o a un sprint futuro.
 6. Cierra el sprint.
-7. Registra actividad y encola jobs.
+7. Cambia a Kanban las preferencias que apuntaban al sprint cerrado.
+8. Registra actividad y encola jobs.
 
 El snapshot guarda tareas, puntos, estado, épica, prioridad, responsable, totales por estado y disposiciones. Es la fuente histórica; consultar tareas vivas después del cierre no reconstruye el mismo estado.
 

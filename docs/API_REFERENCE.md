@@ -158,7 +158,101 @@ Solo owner. Encola metadata de limpieza de Storage y elimina la organizacion con
 
 Roles de proyecto: `owner`, `member`. El usuario debe pertenecer a la organizacion antes de agregarse al proyecto.
 
-## 5. `task-commands`
+## 5. Tablero por scope
+
+### `board-view`
+
+Endpoint:
+
+```text
+POST /functions/v1/board-view
+```
+
+Request:
+
+```json
+{
+  "projectId": "<uuid>"
+}
+```
+
+El endpoint requiere JWT y llama `get_project_board_view`. El RPC devuelve proyecto, preferencia solicitada, scope efectivo, scopes disponibles, sprint activo, capacidades, columna inicial, orden, columnas y tareas.
+
+Reglas de lectura:
+
+- `kanban`: tareas del proyecto con `in_backlog = false`, columna asignada y `sprint_id IS NULL`.
+- `sprint`: las mismas condiciones, pero con `sprint_id` igual al sprint activo.
+- Sin preferencia guardada, un proyecto con sprint activo conserva `sprint`; sin sprint activo usa `kanban`.
+- Si se guardo `sprint` y no existe sprint activo, el scope efectivo es `kanban`.
+- El frontend no debe volver a filtrar las tareas recibidas.
+
+### `board-commands`
+
+Endpoint:
+
+```text
+POST /functions/v1/board-commands
+```
+
+Guardar Kanban:
+
+```json
+{
+  "action": "set_scope",
+  "payload": {
+    "p_project_id": "<uuid>",
+    "p_scope": "kanban"
+  }
+}
+```
+
+`p_scope` admite `kanban` o `sprint`. Seleccionar `sprint` sin sprint activo es rechazado. La respuesta contiene el read model actualizado, no solo la fila de preferencia.
+
+Mover una tarea al Kanban continuo:
+
+```json
+{
+  "action": "move_task_to_kanban",
+  "payload": {
+    "p_project_id": "<uuid>",
+    "p_task_id": "<uuid>",
+    "p_column_id": "<uuid-or-null>",
+    "p_position": 2
+  }
+}
+```
+
+Mover una tarea a un sprint activo o planificado:
+
+```json
+{
+  "action": "move_task_to_sprint",
+  "payload": {
+    "p_project_id": "<uuid>",
+    "p_task_id": "<uuid>",
+    "p_sprint_id": "<uuid>",
+    "p_column_id": "<uuid-or-null>",
+    "p_position": 0
+  }
+}
+```
+
+Devolver una tarea al backlog:
+
+```json
+{
+  "action": "move_task_to_backlog",
+  "payload": {
+    "p_project_id": "<uuid>",
+    "p_task_id": "<uuid>",
+    "p_position": null
+  }
+}
+```
+
+Si se omite `p_column_id`, el backend usa la primera columna del proyecto. Si se omite `p_position`, agrega la tarea al final del destino. El backend valida proyecto, columna, sprint y permisos, y normaliza `in_backlog`, `column_id` y `sprint_id` como una sola transicion.
+
+## 6. `task-commands`
 
 Endpoint:
 
@@ -190,7 +284,7 @@ POST /functions/v1/task-commands
 }
 ```
 
-`p_destination` admite `backlog` o `scrum`. Si se envia una columna, sprint, epica o responsable, todos deben pertenecer o ser validos para el proyecto.
+`p_destination` admite `backlog`, `kanban` o `sprint`. `scrum` permanece como alias compatible: con `p_sprint_id` equivale a `sprint`, sin el equivale a `kanban`. Si se envia una columna, sprint, epica o responsable, todos deben pertenecer o ser validos para el proyecto.
 
 ### Asignar o desasignar
 
@@ -221,6 +315,8 @@ POST /functions/v1/task-commands
 }
 ```
 
+Este command conserva el scope actual de una tarea ya ubicada en Kanban o sprint. Rechaza tareas que aun estan en backlog; para sacarlas se debe usar `board-commands` con un destino explicito.
+
 La columna debe pertenecer al mismo proyecto. `p_position` puede omitirse para usar la logica por defecto del command.
 
 ### Programar fechas
@@ -239,7 +335,7 @@ La columna debe pertenecer al mismo proyecto. `p_position` puede omitirse para u
 
 Fechas en formato `YYYY-MM-DD`. Si final se omite, se iguala al inicio. Si ambas son `null`, la tarea queda sin programar. El final no puede ser anterior al inicio.
 
-## 6. `epic-commands`
+## 7. `epic-commands`
 
 Endpoint:
 
@@ -265,7 +361,7 @@ POST /functions/v1/epic-commands
 
 El command genera `epic_id_display`, valida owner/fase/fechas y registra actividad. La fecha de la epica no se deriva automaticamente de sus tareas.
 
-## 7. `sprint-commands`
+## 8. `sprint-commands`
 
 Endpoint:
 
@@ -308,15 +404,19 @@ Duraciones: `7d`, `15d`, `1m`. Estado inicial: `future` o `active`. Solo puede e
         "taskId": "<another-task-uuid>",
         "destination": "sprint",
         "sprintId": "<future-sprint-uuid>"
+      },
+      {
+        "taskId": "<third-task-uuid>",
+        "destination": "kanban"
       }
     ]
   }
 }
 ```
 
-Debe existir una disposicion por cada tarea incompleta. El command genera el reporte antes de moverlas. El formato definitivo lo valida el SQL; revisar `complete_sprint_command` antes de ampliar destinos.
+Debe existir exactamente una disposicion por cada tarea incompleta. Los destinos son `backlog`, `kanban` o un `sprint` futuro del mismo proyecto. El command genera el reporte antes de moverlas, cierra el sprint y cambia a Kanban las preferencias de tablero que hayan quedado apuntando al sprint cerrado.
 
-## 8. `notification-commands`
+## 9. `notification-commands`
 
 Endpoint:
 
@@ -333,7 +433,7 @@ POST /functions/v1/notification-commands
 
 Devuelve en `data` el numero de notificaciones actualizadas. La UI puede etiquetar la accion como "Borrar todo", pero la operacion conserva filas y establece `read_at`.
 
-## 9. `agent-commands`
+## 10. `agent-commands`
 
 Endpoint:
 
@@ -399,7 +499,7 @@ Aliases aceptados por el parser:
 
 El plan no es transaccional de punta a punta. Organizaciones/proyectos creados antes de un fallo permanecen.
 
-## 10. `job-worker`
+## 11. `job-worker`
 
 Endpoint:
 
@@ -441,7 +541,7 @@ Respuesta:
 
 El worker actual solo valida tipos y tiene adaptadores incompletos. Consultar `ARCHITECTURE.md` antes de asumir entrega externa.
 
-## 11. Lecturas frecuentes
+## 12. Lecturas frecuentes
 
 Ejemplos conceptuales de PostgREST:
 
@@ -457,7 +557,7 @@ GET /rest/v1/user_notifications?select=*&order=created_at.desc
 
 Estas consultas estan sujetas a relaciones expuestas por PostgREST y RLS efectivo. No usar service role para hacerlas desde frontend.
 
-## 12. Codigos de estado
+## 13. Codigos de estado
 
 | Codigo | Significado habitual |
 | --- | --- |
@@ -469,7 +569,7 @@ Estas consultas estan sujetas a relaciones expuestas por PostgREST y RLS efectiv
 
 Varios errores de permisos lanzados por RPC aparecen como `400`, no `403`. Los clientes deben mostrar el mensaje de dominio y no inferir autorizacion solo por status HTTP.
 
-## 13. Agregar una accion nueva
+## 14. Agregar una accion nueva
 
 1. Crear primero el command SQL con autorizacion e invariantes.
 2. Revocar `PUBLIC` y conceder `EXECUTE` al rol correcto.

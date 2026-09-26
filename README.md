@@ -132,6 +132,8 @@ For a fresh local setup, create test users from Supabase Studio under `Authentic
   - `task-images`
 - Edge Functions:
   - `agent-commands`
+  - `board-commands`
+  - `board-view`
   - `epic-commands`
   - `job-worker`
   - `notification-commands`

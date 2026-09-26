@@ -23,6 +23,8 @@ Current migration ledger:
 | `20260831195943_cli_missing_backend_commands.sql` | Commands required by CLI and agent plans |
 | `20260904181108_add_column_status_badge_colors.sql` | Twelve-color status badge palette on project columns |
 | `20260904194224_storage_buckets_and_policies.sql` | Empty buckets, limits and Storage access policies |
+| `20260926210129_add_project_board_scope_preferences.sql` | Per-user board scope preference, board read model and scope command |
+| `20260926211638_add_board_task_placement_commands.sql` | Atomic task placement commands for backlog, Kanban and sprint, plus sprint-close normalization and placement audit |
 
 This list is descriptive. Migration filenames and SQL content remain authoritative.
 

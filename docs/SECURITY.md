@@ -116,6 +116,7 @@ El baseline habilita RLS en:
 - `task_dependencies`
 - `tasks`
 - `user_notifications`
+- `user_project_board_preferences`
 - `user_profiles`
 
 El baseline no habilita RLS en:
@@ -177,9 +178,15 @@ Los commands existentes siguen en general este patron, pero cualquier funcion nu
 | `sprint-commands` | JWT usuario | Cliente con token usuario | Crear y cerrar sprints |
 | `notification-commands` | JWT usuario | Cliente con token usuario | Marcar todas como leidas |
 | `agent-commands` | Depende del gateway/config | Cliente con token recibido | Validar/aplicar planes de agente |
+| `board-view` | JWT usuario | Cliente con token usuario | Read model del tablero por scope |
+| `board-commands` | JWT usuario | Cliente con token usuario | Preferencia y ubicación Backlog/Kanban/Sprint |
 | `job-worker` | `x-job-worker-secret` | Service role | Procesar cola |
 
 Las funciones de usuario reenvian `Authorization` a Supabase para conservar `auth.uid()` y RLS. No deben cambiarse a service role para "resolver" errores de permisos.
+
+`user_project_board_preferences` solo concede lectura directa a `authenticated`. Aunque existen policies defensivas para escritura, la mutacion normal exige `set_project_board_scope_command`, que valida el proyecto y la existencia de sprint activo.
+
+`move_task_destination_command` es un helper `SECURITY DEFINER` sin `EXECUTE` para `authenticated`. Los clientes solo pueden usar los wrappers de destino, que vuelven a validar `auth.uid()`, `can_mutate_project`, pertenencia de columna y pertenencia/estado del sprint. `audit_task_placement_consistency` queda reservado a `service_role` porque inspecciona inconsistencias globales entre proyectos.
 
 `agent-commands` permite validar un plan sin consultar datos, pero el `config.toml` no declara actualmente `verify_jwt = false` para esa funcion. Por tanto el gateway local puede exigir JWT incluso para `validate_plan`. Documentar o configurar deliberadamente ese contrato antes de exponerlo.
 

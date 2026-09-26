@@ -138,6 +138,14 @@ La visibilidad se calcula de esta forma:
 
 La mutacion ordinaria requiere membresia de proyecto. La administracion requiere rol `owner`.
 
+### `user_project_board_preferences`
+
+Preferencia de tablero por usuario y proyecto. Su llave primaria compuesta impide mas de una preferencia para el mismo par.
+
+`selected_scope` admite `kanban` o `sprint`. Sin fila guardada, `get_project_board_view()` conserva Sprint cuando existe uno activo y usa Kanban en caso contrario. El valor solicitado puede diferir del scope efectivo: si se guardo `sprint` pero no existe un sprint activo, el RPC devuelve Kanban. La tabla no mueve tareas ni cambia sprints; solo conserva la eleccion de visualizacion.
+
+Las filas se eliminan en cascada al borrar el usuario o proyecto. RLS limita cada fila al usuario propietario dentro de proyectos visibles. El rol `authenticated` solo recibe lectura directa; las escrituras pasan por `set_project_board_scope_command()` para conservar la validacion de Sprint activo.
+
 ### `project_invitations`
 
 Invitaciones al proyecto con el mismo ciclo `pending`/`accepted`/`declined`. Aceptar una invitacion agrega membresia al proyecto, pero el usuario tambien debe cumplir las reglas de organizacion.
@@ -191,7 +199,15 @@ Reglas funcionales importantes:
 - `assignee_id` debe ser asignable dentro del proyecto.
 - `story_points` se almacena como texto para soportar catalogos distintos; `story_points_to_number()` lo normaliza para reportes.
 
-`create_task_command`, `assign_task_command`, `move_task_column_command` y `schedule_task_command` son las rutas recomendadas de mutacion. Validan permisos, pertenencia y coherencia, y registran actividad.
+Estados canonicos de ubicacion:
+
+| Destino | `in_backlog` | `column_id` | `sprint_id` |
+| --- | --- | --- | --- |
+| Backlog | `true` | `NULL` | `NULL` |
+| Kanban continuo | `false` | Columna del proyecto | `NULL` |
+| Sprint | `false` | Columna del proyecto | Sprint activo o futuro del proyecto |
+
+`create_task_command`, `assign_task_command`, `move_task_to_backlog_command`, `move_task_to_kanban_command`, `move_task_to_sprint_command`, `move_task_column_command` y `schedule_task_command` son las rutas recomendadas de mutacion. Validan permisos, pertenencia y coherencia, y registran actividad. `move_task_destination_command` concentra la transicion pero esta revocada a clientes y solo sirve como nucleo de los wrappers.
 
 ### `task_dependencies`
 
@@ -244,7 +260,7 @@ Los sprints deben ordenarse por fechas, no por momento de creacion: un sprint cr
 
 ### Cierre de sprint
 
-`complete_sprint_command` bloquea y valida el sprint, identifica tareas terminadas por columnas terminales y exige una disposicion para cada tarea incompleta. Las disposiciones permiten devolver al backlog o mover a un sprint futuro. Antes de mover el trabajo genera un snapshot inmutable en `sprint_reports`.
+`complete_sprint_command` bloquea y valida el sprint, identifica tareas terminadas por columnas terminales y exige exactamente una disposicion para cada tarea incompleta. Las disposiciones permiten devolver al backlog, mover al Kanban continuo o mover a un sprint futuro. Antes de mover el trabajo genera un snapshot inmutable en `sprint_reports`. Al cerrar, las preferencias de vista Sprint del proyecto se normalizan a Kanban.
 
 ### `sprint_reports`
 

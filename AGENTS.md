@@ -4,6 +4,12 @@ This repository is the backend-only distribution for NexusPlanner.
 
 Before changing backend behavior, inspect:
 
+- `CODEX.md`
+- `docs/ARCHITECTURE.md`
+- `docs/API_REFERENCE.md`
+- `docs/DATA_MODEL.md`
+- `docs/SECURITY.md`
+- `docs/OPERATIONS.md`
 - `README.md`
 - `supabase/config.toml`
 - `supabase/migrations`

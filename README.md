@@ -4,6 +4,21 @@ Reproducible NexusPlanner backend powered by the Supabase local stack. This repo
 
 This repo is intentionally shareable: it does not include production data, real users, organizations, projects, tasks, storage objects, or production secrets.
 
+## Documentation
+
+Start here when maintaining the backend or giving this repository to another LLM:
+
+- `CODEX.md` - short agent entry point and non-negotiable invariants.
+- `docs/ARCHITECTURE.md` - components, trust boundaries, commands, Edge Functions, events, jobs and CLI flows.
+- `docs/API_REFERENCE.md` - HTTP routes, command actions, payloads, responses and Data API conventions.
+- `docs/DATA_MODEL.md` - tables, relationships, constraints, triggers and lifecycle rules.
+- `docs/SECURITY.md` - Auth, RLS, grants, Storage policies, secrets and verified security gaps.
+- `docs/OPERATIONS.md` - local setup, migrations, Edge Functions, worker operation, backups and Raspberry Pi deployment workflow.
+- `docs/cli/README.md` and `docs/cli/AGENT_PLANS.md` - CLI and agent-plan contracts.
+- `docs/migration/README.md` - baseline and migration policy.
+
+The code and SQL remain the source of truth. Documentation records the current repository state and explicitly calls out behavior that is incomplete or environment-dependent.
+
 ## Requirements
 
 - Linux host with Docker Engine and Docker Compose support.

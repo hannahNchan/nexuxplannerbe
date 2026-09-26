@@ -15,7 +15,7 @@
     "packages/cli"
   ],
   "devDependencies": {
-    "supabase": "^2.116.0"
+    "supabase": "2.116.0"
   }
 }
 
